@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request) {
     
-    const uri = "mongodb+srv://mongodb:c76boO1XDOE95cZ5@free-cluster-rabbi.ur8qf93.mongodb.net/"
+    const uri = "mongodb+srv://" + process.env.USER_NAME + ":"+ process.env.DATABASE_PASSWORD+"@free-cluster-rabbi.ur8qf93.mongodb.net/"
     let client = new MongoClient(uri)
     try {
         console.log("++++++++ S M S ++++++++");
