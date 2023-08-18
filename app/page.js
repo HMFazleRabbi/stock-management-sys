@@ -12,20 +12,29 @@ export default function Home() {
   ]);
 
   useEffect(() => {
-    const fetchStocks = async ()=>{
-      const response = await fetch('/api/product')
-      let rjson = await response.json()
-      console.log(rjson);
-      setStockData(rjson.products)
-    }
+    const fetchStocks = async () => {
+      const response = await fetch("/api/product");
+      let rjson = await response.json();
+      // console.log(rjson);
+      setStockData(rjson.products);
+      setAlert("");
+    };
     fetchStocks();
-  }, [])
-  
+  }, []);
+
   const [newProduct, setNewProduct] = useState({
     productName: "",
     quantity: "",
     price: "",
   });
+
+  const [alert, setAlert] = useState("");
+
+  const [dropdown, setDropdown] = useState([]);
+
+  const [query, setQuery] = useState("");
+
+  const [loading, setLoading] = useState(false);
 
   const handleAddProduct = async () => {
     if (
@@ -33,42 +42,79 @@ export default function Home() {
       !isNaN(parseFloat(newProduct.quantity)) &&
       !isNaN(parseFloat(newProduct.price))
     ) {
-      // Construct the request body
-      const requestBody = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newProduct),
-      };
+      try {
+        // Construct the request body
+        const requestBody = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newProduct),
+        };
 
-      // Send a POST request using fetch
-      const response = fetch("/api/product", requestBody)
-        .then((response) => {
-          // Add the new product to the stock data
-          const updatedStock = [...stockData, { ...newProduct }];
-          setStockData(updatedStock);
-          setNewProduct({ productName: "", quantity: "", price: "" });
-          // console.log(response);
-        })
-        .catch((error) => {
-          console.error("Error adding product:", error);
-        });
+        // Send a POST request using fetch
+        const response = await fetch("/api/product", requestBody);
+        const data = await response.json();
+        // console.log(data.product)
+        // console.log(newProduct)
+
+        // Add the new product to the stock data
+        const updatedStock = [...stockData, newProduct];
+        setStockData(updatedStock);
+        setNewProduct({ productName: "", quantity: "", price: "" });
+        if (data.success) {
+          setAlert("Your product has been updated!");
+        }
+      } catch (error) {
+        console.error("Error adding product:", error);
+        setAlert("An error occurred while adding the product");
+      }
     }
   };
 
+  const onDropdownEdit = async (e) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+
+    let counter = 0;
+    let previousQuery = query;
+
+    setLoading(true);
+
+    while (counter < 5) {
+      const response = await fetch("api/search?query=" + newQuery);
+      const rjson = await response.json();
+
+      if (query === previousQuery) {
+        setDropdown(rjson.products);
+        setLoading(false);
+        break; // Exit the loop if there's no change in the query
+      }
+
+      previousQuery = query;
+      counter++;
+    }
+  };
+
+  const buttonAction = (action, productName)=>{
+    console.log(action, productName)
+  }
   return (
     <>
       <Header />
       <div className="container mx-auto px-8 mt-10">
-        <div className="text-green-800 font-bold w-50 py-2 my-5 bg-green-50 text-center rounded"> Your product has been added!</div>
+        {/* Conditional rendering of the alert div */}
+        {alert && (
+          <div className="text-green-800 font-bold w-50 py-2 my-5 bg-green-50 text-center rounded">
+            {alert}
+          </div>
+        )}
         <h1 className="text-2xl font-bold mb-4">Search Product</h1>
-        <div className="flex items-center space-x-4 mb-8">
+        <div className="flex items-center space-x-4 mb-2">
           <input
             type="text"
             placeholder="Search..."
-            // value={searchTerm}
-            // onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={onDropdownEdit}
             className="border border-gray-500 px-2 py-1 w-full rounded"
           />
           <select
@@ -80,6 +126,41 @@ export default function Home() {
             <option value="quantity">Quantity</option>
             <option value="price">Price</option>
           </select>
+        </div>
+
+        <div className="dropcontainer absolute w-[72vw]  bg-blue-50 rounded">
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : (
+            dropdown.map((item, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center bg-blue-100 p-3 my-3 rounded"
+              >
+                <div>
+                  <span className="font-bold">{item.productName}</span>
+                  <span className="text-gray-600">
+                    {" "}
+                    ({item.quantity} available)
+                  </span>
+                  <span className="text-purple-500"> for $({item.price})</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button onClick={()=>{buttonAction("plus", item.productName)}} disable={loading}  className="px-4 py-1 bg-green-500 text-white rounded-xl border-b-2 hover:bg-green-600 transition duration-300">
+                    +
+                  </button>
+                  <span className="w-12 text-center">{item.quantity}</span>
+                  <button onClick={()=>{buttonAction("minus", item.productName)}} disable={loading}  className="px-4 py-1 bg-red-500 text-white rounded-xl border-b-2 hover:bg-red-600 transition duration-300">
+                    -
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
