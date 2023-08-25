@@ -36,6 +36,8 @@ export default function Home() {
 
   const [loading, setLoading] = useState(false);
 
+  const [loadingAction, setLoadingAction] = useState(false);
+
   const handleAddProduct = async () => {
     if (
       newProduct.productName &&
@@ -96,9 +98,57 @@ export default function Home() {
     }
   };
 
-  const buttonAction = (action, productName)=>{
-    console.log(action, productName)
-  }
+  const buttonAction = async (action, productName, initialQuantity) => {
+    //Change quantity of product
+
+    console.log("buttonAction pressed: ", action, productName, initialQuantity);
+    setLoadingAction(true);
+
+    // Construct the request body
+    const requestBody = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ action, productName, initialQuantity }),
+    };
+
+    // Send a POST request using fetch
+    const response = await fetch("/api/action", requestBody);
+    const data = await response.json();
+
+    setLoadingAction(false);
+
+    // Make chainges to Table
+    let index = stockData.findIndex((item)=> item.productName ==productName);
+    console.log("index:", index)
+    let newProduct = JSON.parse(JSON.stringify(stockData))
+    if (action=='plus'){
+      newProduct[index].quantity = parseInt(initialQuantity) + 1;
+    }
+    else if (action ='subtract') {
+      newProduct[index].quantity = parseInt(initialQuantity) - 1;
+    } 
+    console.log("newProduct:", newProduct)
+    setStockData(newProduct)
+
+
+     // Make chainges to indexdropdown
+     let indexdropdown = dropdown.findIndex((item)=> item.productName == productName);
+     console.log("indexdropdown:", indexdropdown)
+     let newDropdown = JSON.parse(JSON.stringify(dropdown))
+     console.log("newDropdown", newDropdown)
+     if (action=='plus'){
+      newDropdown[indexdropdown].quantity = parseInt(initialQuantity) + 1;
+     }
+     else if (action ='subtract') {
+      newDropdown[indexdropdown].quantity = parseInt(initialQuantity) - 1;
+     } 
+     console.log("newProduct:", newDropdown)
+     setDropdown(newDropdown)
+
+
+  };
   return (
     <>
       <Header />
@@ -150,11 +200,31 @@ export default function Home() {
                   <span className="text-purple-500"> for $({item.price})</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button onClick={()=>{buttonAction("plus", item.productName)}} disable={loading}  className="px-4 py-1 bg-green-500 text-white rounded-xl border-b-2 hover:bg-green-600 transition duration-300">
+                  <button
+                    disabled={loadingAction}
+                    onClick={() => {
+                      buttonAction("plus", item.productName, item.quantity);
+                    }}
+                    className={`px-4 py-1 rounded-xl border-b-2 transition duration-300 ${
+                      loadingAction
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : "bg-green-500 text-white hover:bg-green-600"
+                    }`}
+                  >
                     +
                   </button>
                   <span className="w-12 text-center">{item.quantity}</span>
-                  <button onClick={()=>{buttonAction("minus", item.productName)}} disable={loading}  className="px-4 py-1 bg-red-500 text-white rounded-xl border-b-2 hover:bg-red-600 transition duration-300">
+                  <button
+                    disabled={loadingAction}
+                    onClick={() => {
+                      buttonAction("minus", item.productName, item.quantity);
+                    }}
+                    className={`px-4 py-1 rounded-xl border-b-2 transition duration-300 ${
+                      loadingAction
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : "bg-red-500 text-white hover:bg-green-600"
+                    }`}
+                  >
                     -
                   </button>
                 </div>
